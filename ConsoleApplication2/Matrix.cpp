@@ -22,9 +22,9 @@ Matrix::Matrix(int m, int n)
 //也可用二维数组初始化
 Matrix::Matrix(double* items, int m, int n)
 {
-	item = items;
 	rowNum = m;
 	colNum = n;
+	item = items;
 }
 Matrix::Matrix(int n)
 {

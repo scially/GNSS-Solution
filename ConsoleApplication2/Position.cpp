@@ -72,9 +72,9 @@ SatPoint SatPosition(const Time& obsTime, Point& stationPoint, double pL, const 
 		//9.计算观测瞬间升交点的经度L
 		double L = nData.OMEGA + (nData.OMEGA_DOT - We)*timeInterval - We*nData.TOE;
 		//10.计算卫星在瞬时地球坐标系中的位置
-		satpoint.x = sat_x*cos(L) - sat_y*cos(i)*sin(L);
-		satpoint.y = sat_x*sin(L) + sat_y*cos(i)*cos(L);
-		satpoint.z = sat_y*sin(i);
+		satpoint.point.x = sat_x*cos(L) - sat_y*cos(i)*sin(L);
+		satpoint.point.y = sat_x*sin(L) + sat_y*cos(i)*cos(L);
+		satpoint.point.z = sat_y*sin(i);
 		//11.地球自转改正,将卫星位置规划到接受信号时刻的位置
 		/*double deta_a = We*timeInterval;
 		double earth_x = satpoint.x, earth_y = satpoint.y;
@@ -90,9 +90,9 @@ SatPoint SatPosition(const Time& obsTime, Point& stationPoint, double pL, const 
 		SatCLK = nData.ClkBias + nData.ClkDrift*deta_toc + nData.ClkDriftRate*pow(deta_toc, 2) + deta_tr;
 		//13.再次计算信号传播时间，考虑卫星钟差
 		//卫星到接收机观测距离
-		double sat2rec_x2 = pow((satpoint.x - stationPoint.x), 2);
-		double sat2rec_y2 = pow((satpoint.y - stationPoint.y), 2);
-		double sat2rec_z2 = pow((satpoint.z - stationPoint.z), 2);
+		double sat2rec_x2 = pow((satpoint.point.x - stationPoint.x), 2);
+		double sat2rec_y2 = pow((satpoint.point.y - stationPoint.y), 2);
+		double sat2rec_z2 = pow((satpoint.point.z - stationPoint.z), 2);
 		double pL1 = sqrt(sat2rec_x2 + sat2rec_y2 + sat2rec_z2);
 		//考虑卫星钟差、接收机钟差
 		TransTime1 = pL1 / C + SatCLK - Rr;
@@ -122,7 +122,7 @@ NFileRecord GetNFileRecordByObsTime(const Time& obsTime, const vector<NFileRecor
 //PXYZ 测站近似坐标
 //SatCLK 卫星钟差
 //Rr 接收机钟差
-bool CalculationPostion(Point PXYZ, const OEpochData &oDatas, Point &Position, const vector<NFileRecord>& nDatas, double LeapSeconds,double &Rr)
+bool CalculationPostion(Point PXYZ, const OEpochData &oDatas, Point &Position, const vector<NFileRecord>& nDatas, double LeapSeconds,double &Rr,double elelvation)
 {
 	Point Position1;
 	//星历中的测站近似坐标
@@ -156,18 +156,16 @@ bool CalculationPostion(Point PXYZ, const OEpochData &oDatas, Point &Position, c
 	}
 	//是否多余4颗卫星
 	if (oDatas_copy.satsums<4) return false;
-	//构建方程系数
-	Matrix B(oDatas_copy.satsums, 4);
-	Matrix L(oDatas_copy.satsums, 1);
-	Matrix detaX(4, 1);
-	Matrix V(oDatas_copy.satsums, 1);
 	//迭代计算测站坐标,控制迭代次数
 	int iter_count = 0;
 	while (abs(Position.x - Position1.x)>1e-5 || abs(Position.y - Position1.y) > 1e-5 || abs(Position.z - Position1.z) > 1e-5)
 	{	
+		//构建方程系数
+		vector<double> vB;
+		vector<double> vL;
 		if (++iter_count>50)
 		{
-			std::cout << "迭代次数过多，该历元！\n";
+			std::cout << "该历元迭代次数过多！\n";
 			break;
 		}
 		Position1 = Position;
@@ -191,37 +189,39 @@ bool CalculationPostion(Point PXYZ, const OEpochData &oDatas, Point &Position, c
 			}
 			//卫星位置
 			SatPoint satpoint = SatPosition(oDatas_copy.gtime, Position, PObs, _nData, SatCLK, LeapSeconds, Rr);
-			//测试卫星位置
-			std::cout.precision(10);
-			//std::cout << satpoint.PRN << ": " << satpoint.x << ", " << satpoint.y << ", " << satpoint.z << std::endl;
 			//方向余弦
-			double deta_x = satpoint.x - Position.x;
-			double deta_y = satpoint.y - Position.y;
-			double deta_z = satpoint.z - Position.z;
+			double deta_x = satpoint.point.x - Position.x;
+			double deta_y = satpoint.point.y - Position.y;
+			double deta_z = satpoint.point.z - Position.z;
 			double Rj = sqrt(deta_x*deta_x + deta_y*deta_y + deta_z*deta_z);
 			double li = deta_x / Rj;
 			double mi = deta_y / Rj;
 			double ni = deta_z / Rj;
 			double l = PObs - Rj + C*SatCLK - C*Rr; //常数项
-			B.set(i, 0, -li); B.set(i, 1, -mi); B.set(i, 2, -ni); B.set(i, 3, 1.0);
-			L.set(i, 0, l);
+			vB.push_back(-li);
+			vB.push_back(-mi);
+			vB.push_back(-ni);
+			vB.push_back(1.0);
+			vL.push_back(1);
+			/*B.set(i, 0, -li); B.set(i, 1, -mi); B.set(i, 2, -ni); B.set(i, 3, 1.0);
+			L.set(i, 0, l);*/
 		}
+		Matrix B(&vB[0],vB.size()/4, 4);
+		Matrix L(&vL[0], vL.size(), 1);
+		Matrix detaX(4, 1);
 		detaX = (B.Trans()*B).Inverse()*(B.Trans()*L);
 		//改正测站坐标以及接收机钟差
 		Position.x += detaX.get(0, 0);
 		Position.y += detaX.get(1, 0);
 		Position.z += detaX.get(2, 0);
 		Rr += detaX.get(3, 0) / C;
+		
+		detaX.Matrix_free();
 	}
-	B.Matrix_free();
-	L.Matrix_free();
-	detaX.Matrix_free();
-	V.Matrix_free();
-	//测试结果
-	//std::cout << Position.x << "  " << Position.y << "  " << Position.z << "\n";
 	return true;
 }
-bool OutputResult(ReadFile read,string output)
+//elevation 高度截止角
+bool OutputResult(ReadFile read,string output,double elevation)
 {
 	using namespace std;
 	//获取星历和观测数据
@@ -243,7 +243,7 @@ bool OutputResult(ReadFile read,string output)
 	{
 		cout << "正在处理： " << i << endl;
 		Point result;
-		if (CalculationPostion(oHeader.PXYZ, oDatas[i], result, nDatas, nHeader.LeapSeconds, Rr))
+		if (CalculationPostion(oHeader.PXYZ, oDatas[i], result, nDatas, nHeader.LeapSeconds, Rr, elevation))
 		{
 			Output << setw(4) << oDatas[i].gtime.year << setw(3) << oDatas[i].gtime.month << setw(3) << oDatas[i].gtime.day
 				<< setw(3) << oDatas[i].gtime.hour << setw(3) << oDatas[i].gtime.minute << setw(11) << fixed << setprecision(7)

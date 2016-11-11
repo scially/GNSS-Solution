@@ -11,6 +11,9 @@
 #define C  2.99792458E8 //光速
 #define PI atan(1)*4
 #define We 7.292115E-5 //地球自转角速度
+
+#define WGS84A  6378137     //WGS84坐标系长半轴
+#define WGS84f  1/298.257223565 //WGS84坐标系偏心率
 //v2.x Rinex文件头
 using std::string;
 using std::vector;
@@ -22,13 +25,7 @@ enum ObsType{
 	L1,
 	L2=4,
 };
-struct SatPoint{  //卫星坐标
-	double x;
-	double y;
-	double z;
-	string PRN;
-};
-struct Point  //测站坐标
+struct Point  //空间坐标系
 {
 	double x;
 	double y;
@@ -38,6 +35,23 @@ struct Point  //测站坐标
 		x = 0;
 		y = 0;
 		z = 0;
+	}
+};
+struct SatPoint   //卫星坐标
+{ 
+	Point point;
+	string PRN;
+};
+struct BLHPoint  //大地坐标系,单位为弧度
+{
+	double B;
+	double L;
+	double H;
+	BLHPoint()
+	{
+		B = 0;
+		L = 0;
+		H = 0;
 	}
 };
 struct Time{  //正常时UTC
