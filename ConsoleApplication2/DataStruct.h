@@ -12,7 +12,7 @@
 #define PI atan(1)*4
 #define We 7.292115E-5 //地球自转角速度
 
-#define WGS84A  6378137     //WGS84坐标系长半轴
+#define WGS84A  6378137.0     //WGS84坐标系长半轴
 #define WGS84f  1/298.257223565 //WGS84坐标系偏心率
 //v2.x Rinex文件头
 using std::string;
@@ -52,6 +52,18 @@ struct BLHPoint  //大地坐标系,单位为弧度
 		B = 0;
 		L = 0;
 		H = 0;
+	}
+};
+struct ENUPoint  //站心地平坐标系
+{
+	double E;
+	double N;
+	double U;
+	ENUPoint()
+	{
+		E = 0;
+		N = 0;
+		U = 0;
 	}
 };
 struct Time{  //正常时UTC

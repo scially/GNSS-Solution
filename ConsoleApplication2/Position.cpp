@@ -122,7 +122,7 @@ NFileRecord GetNFileRecordByObsTime(const Time& obsTime, const vector<NFileRecor
 //PXYZ 测站近似坐标
 //SatCLK 卫星钟差
 //Rr 接收机钟差
-bool CalculationPostion(Point PXYZ, const OEpochData &oDatas, Point &Position, const vector<NFileRecord>& nDatas, double LeapSeconds,double &Rr,double elelvation)
+bool CalculationPostion(Point PXYZ, OEpochData &oData, Point &Position, const vector<NFileRecord>& nDatas, double LeapSeconds,double &Rr,double elvation)
 {
 	Point Position1;
 	//星历中的测站近似坐标
@@ -131,31 +131,15 @@ bool CalculationPostion(Point PXYZ, const OEpochData &oDatas, Point &Position, c
 	double ion = 0;
 	double trop = 0;
 	//卫星数是否大于4
-	if (oDatas.satsums < 4) return false;
+	if (oData.satsums < 4) return false;
 	//初始化卫星钟差
 	map<string, double> SatCLKs;
 	for (vector<NFileRecord>::size_type i = 0; i < nDatas.size();i++)
 	{
 		SatCLKs[nDatas[i].PRN] = 0.0;
 	}
-	//检查观测值是否有效
-	OEpochData oDatas_copy = oDatas;
-	for (vector<ASatData>::size_type i = 0; i < oDatas_copy.AllTypeDatas[C1].size(); i++)
-	{
-		//跳过非GPS卫星
-		if (oDatas_copy.AllTypeDatas[C1][i].PRN.substr(0, 1) != "G")
-		{
-			i--;
-			oDatas_copy.AllTypeDatas[C1].erase(oDatas_copy.AllTypeDatas[C1].begin() + i + 1);
-			oDatas_copy.AllTypeDatas[P1].erase(oDatas_copy.AllTypeDatas[P1].begin() + i + 1);
-			oDatas_copy.AllTypeDatas[P2].erase(oDatas_copy.AllTypeDatas[P2].begin() + i + 1);
-			oDatas_copy.AllTypeDatas[L1].erase(oDatas_copy.AllTypeDatas[L1].begin() + i + 1);
-			oDatas_copy.AllTypeDatas[L2].erase(oDatas_copy.AllTypeDatas[L2].begin() + i + 1);
-			oDatas_copy.satsums--;
-		}
-	}
-	//是否多余4颗卫星
-	if (oDatas_copy.satsums<4) return false;
+	//检查观测值
+	if (!CheckDatas(oData)) return false;
 	//迭代计算测站坐标,控制迭代次数
 	int iter_count = 0;
 	while (abs(Position.x - Position1.x)>1e-5 || abs(Position.y - Position1.y) > 1e-5 || abs(Position.z - Position1.z) > 1e-5)
@@ -163,32 +147,33 @@ bool CalculationPostion(Point PXYZ, const OEpochData &oDatas, Point &Position, c
 		//构建方程系数
 		vector<double> vB;
 		vector<double> vL;
-		if (++iter_count>50)
-		{
-			std::cout << "该历元迭代次数过多！\n";
-			break;
-		}
+		if (++iter_count > 50) break;
 		Position1 = Position;
-		for (vector<ASatData>::size_type i = 0; i < oDatas_copy.AllTypeDatas[C1].size(); i++)
+		for (int i = 0; i < oData.satsums; i++)
 		{
+			//卫星类型
+			if (oData.AllTypeDatas[C1][i].PRN.substr(0, 1) != "G") continue;
 			//根据观测时间选择最佳轨道卫星
-			NFileRecord _nData = GetNFileRecordByObsTime(oDatas_copy.gtime, nDatas, oDatas_copy.AllTypeDatas[C1].at(i).PRN);
+			NFileRecord _nData = GetNFileRecordByObsTime(oData.gtime, nDatas, oData.AllTypeDatas[C1].at(i).PRN);
 			//卫星钟差，每颗卫星钟差均不一样，因此要根据PRN来找上次计算出的这颗卫星钟差
 			double &SatCLK = SatCLKs[_nData.PRN];
 
 			//有的接收机可能没有P码，所以改用C/A码
-			double PObs = oDatas_copy.AllTypeDatas[C1].at(i).Obs;
+			double PObs = oData.AllTypeDatas[C1].at(i).Obs;
 			//无电离层模型
-			if (oDatas_copy.AllTypeDatas[P1].at(i).Obs != 0)
+			if (oData.AllTypeDatas[P1].at(i).Obs != 0)
 			{
-				PObs = oDatas_copy.AllTypeDatas[P1].at(i).Obs;
-				if (oDatas_copy.AllTypeDatas[P2].at(i).Obs != 0)
+				PObs = oData.AllTypeDatas[P1].at(i).Obs;
+				if (oData.AllTypeDatas[P2].at(i).Obs != 0)
 				{
-					PObs = 2.54573*PObs - 1.54573*oDatas_copy.AllTypeDatas[P2].at(i).Obs;
+					PObs = 2.54573*PObs - 1.54573*oData.AllTypeDatas[P2].at(i).Obs;
 				}
 			}
 			//卫星位置
-			SatPoint satpoint = SatPosition(oDatas_copy.gtime, Position, PObs, _nData, SatCLK, LeapSeconds, Rr);
+			SatPoint satpoint = SatPosition(oData.gtime, Position, PObs, _nData, SatCLK, LeapSeconds, Rr);
+			//卫星高度角判断
+			if (!Elevation(Position,satpoint,elvation)) continue;
+
 			//方向余弦
 			double deta_x = satpoint.point.x - Position.x;
 			double deta_y = satpoint.point.y - Position.y;
@@ -203,9 +188,8 @@ bool CalculationPostion(Point PXYZ, const OEpochData &oDatas, Point &Position, c
 			vB.push_back(-ni);
 			vB.push_back(1.0);
 			vL.push_back(1);
-			/*B.set(i, 0, -li); B.set(i, 1, -mi); B.set(i, 2, -ni); B.set(i, 3, 1.0);
-			L.set(i, 0, l);*/
 		}
+		if (vL.size() < 4)  return false; 
 		Matrix B(&vB[0],vB.size()/4, 4);
 		Matrix L(&vL[0], vL.size(), 1);
 		Matrix detaX(4, 1);
@@ -256,7 +240,7 @@ bool OutputResult(ReadFile read,string output,double elevation)
 		}
 		else
 		{
-			Output << "卫星数量小于4颗，具体信息：\n";
+			Output << "该历元数据有误：\n";
 			Output << setw(4) << oDatas[i].gtime.year << setw(3) << oDatas[i].gtime.month << setw(3) << oDatas[i].gtime.day
 				<< setw(3) << oDatas[i].gtime.hour << setw(3) << oDatas[i].gtime.minute << setw(11) << fixed << setprecision(7) 
 				<< oDatas[i].gtime.second<< endl;

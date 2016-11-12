@@ -1,16 +1,8 @@
-﻿生成启动时间为 2016/11/11 星期五 18:07:26。
-     1>项目“D:\系统文件\桌面\测试\PositionUsingP\ConsoleApplication2\ConsoleApplication2.vcxproj”在节点 2 上(Rebuild 个目标)。
+﻿生成启动时间为 2016/11/12 星期六 10:19:34。
+     1>项目“D:\系统文件\桌面\测试\PositionUsingP\ConsoleApplication2\ConsoleApplication2.vcxproj”在节点 2 上(Build 个目标)。
      1>ClCompile:
-         D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _LIB /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt EString.cpp main.cpp Matrix.cpp Position.cpp ReadFile.cpp ReadNFile.cpp ReadOFile.cpp Tools.cpp
-         Tools.cpp
-         ReadOFile.cpp
-         ReadNFile.cpp
-         ReadFile.cpp
+         D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _LIB /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt Position.cpp
          Position.cpp
-         Matrix.cpp
-         main.cpp
-         EString.cpp
-         正在生成代码...
        Link:
          D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\系统文件\桌面\测试\PositionUsingP\Debug\ConsoleApplication2.exe" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"D:\系统文件\桌面\测试\PositionUsingP\Debug\ConsoleApplication2.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\系统文件\桌面\测试\PositionUsingP\Debug\ConsoleApplication2.lib" /MACHINE:X86 Debug\EString.obj
          Debug\main.obj
@@ -21,8 +13,8 @@
          Debug\ReadOFile.obj
          Debug\Tools.obj
          ConsoleApplication2.vcxproj -> D:\系统文件\桌面\测试\PositionUsingP\Debug\ConsoleApplication2.exe
-     1>已完成生成项目“D:\系统文件\桌面\测试\PositionUsingP\ConsoleApplication2\ConsoleApplication2.vcxproj”(Rebuild 个目标)的操作。
+     1>已完成生成项目“D:\系统文件\桌面\测试\PositionUsingP\ConsoleApplication2\ConsoleApplication2.vcxproj”(Build 个目标)的操作。
 
 生成成功。
 
-已用时间 00:00:03.59
+已用时间 00:00:00.85
