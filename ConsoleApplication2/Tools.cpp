@@ -74,7 +74,7 @@ bool CheckDatas(OEpochData &oData)
 	return true;
 }
 //计算卫星高度角，并对观测数据进行处理
-bool Elevation(const Point &station, const SatPoint &satpoint,double elvation)
+bool Elevation(const Point &station, const SatPoint &satpoint,double elvation,double *azel)
 {
 	//1.计算向量模
 	double distance = 0;
@@ -90,8 +90,23 @@ bool Elevation(const Point &station, const SatPoint &satpoint,double elvation)
 	E[0] = -sin(rBLH.L);      E[3] = cos(rBLH.L);       E[6] = 0.0;
 	E[1] = -sin(rBLH.B)*cos(rBLH.L); E[4] = -sin(rBLH.B)*sin(rBLH.L); E[7] = cos(rBLH.B);
 	E[2] = cos(rBLH.B)*cos(rBLH.L);  E[5] = cos(rBLH.B)*sin(rBLH.L);  E[8] = sin(rBLH.B);
-	
 	Matrix enu = Matrix(E, 3, 3)*Matrix(r_vector, 3, 1);
+	double az = pow(enu.get(0, 0), 2) + pow(enu.get(1, 0), 2) < 1E-12 ? 0.0 : atan2(enu.get(0, 0), enu.get(1, 0));
+	if (az<0.0) az += 2 * PI;
 	//卫星高度角
-	return asin(enu.get(2, 0)) > (elvation*PI / 180) ? true : false;
+	double el = asin(enu.get(2, 0));
+	if (azel) { azel[0] = az; azel[1] = el; }
+	return el >elvation*PI / 180 ? true : false;
+}
+double Trop(const Point &station, const SatPoint &satpoint, OEpochData &oDatas,double *azel)
+{
+	//1.计算标准气象元素
+	BLHPoint blh = PointToBLHPoint(station);
+	double T = 20 - 0.0065*blh.H;
+	double P = 1013.25*pow((1 - 0.0000266*blh.H), 5.225);
+	double RH = 0.5*exp(-0.0006396*blh.H);
+
+	//2.Saastamoninen模型
+	//double detaE=
+	return 0;
 }

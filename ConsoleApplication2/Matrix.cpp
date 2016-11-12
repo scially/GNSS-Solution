@@ -24,7 +24,11 @@ Matrix::Matrix(double* items, int m, int n)
 {
 	rowNum = m;
 	colNum = n;
-	item = items;
+	item = new double[m*n];
+	for (int i = 0; i < colNum*rowNum; i++)
+	{
+		item[i] = items[i];
+	}
 }
 Matrix::Matrix(int n)
 {
@@ -52,13 +56,21 @@ Matrix::Matrix(const Matrix &M)
 		item[i] = M.item[i];
 	}
 }
+Matrix& Matrix::operator=(Matrix & M)
+{
+	colNum = M.colNum;
+	rowNum = M.rowNum;
+	if (item != nullptr) delete[] item;
+	item = new double[colNum*rowNum];
+	for (int i = 0; i < colNum*rowNum; i++)
+	{
+		item[i] = M.item[i];
+	}
+	return *this;
+}
 Matrix::~Matrix()
 {
-}
-void Matrix :: Matrix_free()
-{
-	if (item != nullptr)
-		delete[] item;
+	delete[] item;
 }
 double Matrix::get(int i, int j) const
 {

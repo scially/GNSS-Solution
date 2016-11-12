@@ -7,5 +7,5 @@ extern bool CheckDatas(OEpochData &oDatas);
 extern int MinOfNums(const vector<double>& nums);
 extern BLHPoint PointToBLHPoint(const Point& point);
 extern ENUPoint BLHToENU(const BLHPoint& station, const SatPoint& satpoint);
-extern double Trop(const Point &station, const SatPoint &satpoint, OEpochData &oDatas);
-extern bool Elevation(const Point &station, const SatPoint &satpoint, double elvation);
+extern double Trop(const Point &station, const SatPoint &satpoint, OEpochData &oDatas,double *azel);
+extern bool Elevation(const Point &station, const SatPoint &satpoint, double elvation, double *azel);

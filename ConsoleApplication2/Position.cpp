@@ -11,7 +11,7 @@
 //LEAPSeconds 跳秒
 //stationPoinst 测站坐标，初始值为(0,0,0)
 //Rr接收机钟差
-SatPoint SatPosition(const Time& obsTime, Point& stationPoint, double pL, const NFileRecord& nData, double &SatCLK, double LEAPSeconds, double Rr)
+SatPoint SatPosition(const Time& obsTime,const Point& stationPoint, double pL, const NFileRecord& nData, double &SatCLK, double LEAPSeconds, double Rr)
 {
 	SatPoint satpoint;
 	satpoint.PRN = nData.PRN;
@@ -22,7 +22,7 @@ SatPoint SatPosition(const Time& obsTime, Point& stationPoint, double pL, const 
 	TransTime1 = pL / C - Rr + SatCLK;
 	//卫星信号传播时间需要收敛
 	//第一次假设测站坐标为(0,0,0)这样就就差了几毫秒，仍然可以收敛
-	while (abs(TransTime0 - TransTime1) > 1.0e-6)
+	while (abs(TransTime0 - TransTime1) > 1.0e-8)
 	{
 		TransTime0 = TransTime1;
 		//1.计算卫星运动的平均角速度
@@ -50,7 +50,6 @@ SatPoint SatPosition(const Time& obsTime, Point& stationPoint, double pL, const 
 		double E = 0, E0 = M;
 		while (abs(E - E0) > 1.0e-14)
 		{
-			//牛顿迭代法
 			E0 = E;
 			E -= (M + nData.e*sin(E0) - E0) / (nData.e*cos(E0) - 1);
 		}
@@ -76,11 +75,11 @@ SatPoint SatPosition(const Time& obsTime, Point& stationPoint, double pL, const 
 		satpoint.point.y = sat_x*sin(L) + sat_y*cos(i)*cos(L);
 		satpoint.point.z = sat_y*sin(i);
 		//11.地球自转改正,将卫星位置规划到接受信号时刻的位置
-		/*double deta_a = We*timeInterval;
-		double earth_x = satpoint.x, earth_y = satpoint.y;
-		satpoint.x = earth_x * cos(deta_a) + earth_y  * sin(deta_a);
-		satpoint.y = earth_y * cos(deta_a) - earth_x * sin(deta_a);
-		satpoint.z = satpoint.z;*/
+		/*double deta_a = We*timeInterval/1000;
+		double earth_x = satpoint.point.x, earth_y = satpoint.point.y;
+		satpoint.point.x = earth_x * cos(deta_a) + earth_y  * sin(deta_a);
+		satpoint.point.y = earth_y * cos(deta_a) - earth_x * sin(deta_a);
+		satpoint.point.z = satpoint.point.z;*/
 		//12.卫星钟差改正
 		//计算相对论效应
 		//由于卫星非圆形轨道引起的相对论效应改正项
@@ -142,39 +141,37 @@ bool CalculationPostion(Point PXYZ, OEpochData &oData, Point &Position, const ve
 	if (!CheckDatas(oData)) return false;
 	//迭代计算测站坐标,控制迭代次数
 	int iter_count = 0;
-	while (abs(Position.x - Position1.x)>1e-5 || abs(Position.y - Position1.y) > 1e-5 || abs(Position.z - Position1.z) > 1e-5)
+	while (abs(Position.x - Position1.x)>1e-10 || abs(Position.y - Position1.y) > 1e-10 || abs(Position.z - Position1.z) > 1e-10)
 	{	
 		//构建方程系数
 		vector<double> vB;
 		vector<double> vL;
 		if (++iter_count > 50) break;
+
 		Position1 = Position;
 		for (int i = 0; i < oData.satsums; i++)
 		{
-			//卫星类型
 			if (oData.AllTypeDatas[C1][i].PRN.substr(0, 1) != "G") continue;
 			//根据观测时间选择最佳轨道卫星
 			NFileRecord _nData = GetNFileRecordByObsTime(oData.gtime, nDatas, oData.AllTypeDatas[C1].at(i).PRN);
 			//卫星钟差，每颗卫星钟差均不一样，因此要根据PRN来找上次计算出的这颗卫星钟差
-			double &SatCLK = SatCLKs[_nData.PRN];
-
-			//有的接收机可能没有P码，所以改用C/A码
+			double &SatCLK = SatCLKs[_nData.PRN];	
 			double PObs = oData.AllTypeDatas[C1].at(i).Obs;
+			//卫星位置
+			SatPoint satpoint;
+			
 			//无电离层模型
 			if (oData.AllTypeDatas[P1].at(i).Obs != 0)
 			{
 				PObs = oData.AllTypeDatas[P1].at(i).Obs;
-				if (oData.AllTypeDatas[P2].at(i).Obs != 0)
-				{
-					PObs = 2.54573*PObs - 1.54573*oData.AllTypeDatas[P2].at(i).Obs;
-				}
+				satpoint = SatPosition(oData.gtime, Position, PObs, _nData, SatCLK, LeapSeconds, Rr);
+				//if (oData.AllTypeDatas[P2].at(i).Obs != 0)  PObs = 2.54573*PObs - 1.54573*oData.AllTypeDatas[P2].at(i).Obs;
 			}
-			//卫星位置
-			SatPoint satpoint = SatPosition(oData.gtime, Position, PObs, _nData, SatCLK, LeapSeconds, Rr);
+			else satpoint = SatPosition(oData.gtime, Position, PObs, _nData, SatCLK, LeapSeconds, Rr);
 			//卫星高度角判断
-			if (!Elevation(Position,satpoint,elvation)) continue;
+			double azel[2];
+			if (!Elevation(Position,satpoint,elvation,azel)) continue;
 
-			//方向余弦
 			double deta_x = satpoint.point.x - Position.x;
 			double deta_y = satpoint.point.y - Position.y;
 			double deta_z = satpoint.point.z - Position.z;
@@ -182,12 +179,12 @@ bool CalculationPostion(Point PXYZ, OEpochData &oData, Point &Position, const ve
 			double li = deta_x / Rj;
 			double mi = deta_y / Rj;
 			double ni = deta_z / Rj;
-			double l = PObs - Rj + C*SatCLK - C*Rr; //常数项
+			double l = PObs - Rj + C*SatCLK - C*Rr; 
 			vB.push_back(-li);
 			vB.push_back(-mi);
 			vB.push_back(-ni);
 			vB.push_back(1.0);
-			vL.push_back(1);
+			vL.push_back(l);
 		}
 		if (vL.size() < 4)  return false; 
 		Matrix B(&vB[0],vB.size()/4, 4);
@@ -199,8 +196,6 @@ bool CalculationPostion(Point PXYZ, OEpochData &oData, Point &Position, const ve
 		Position.y += detaX.get(1, 0);
 		Position.z += detaX.get(2, 0);
 		Rr += detaX.get(3, 0) / C;
-		
-		detaX.Matrix_free();
 	}
 	return true;
 }
@@ -223,6 +218,7 @@ bool OutputResult(ReadFile read,string output,double elevation)
 	if (!Output.is_open()) return false;
 	Output << "        观测历元       " << "    卫星数   " << "      X       " << "      Y       " << "      Z       "
 		<< "    接收机钟差     \n";
+
 	for (vector<OEpochData>::size_type i = 0; i < oDatas.size(); i++)
 	{
 		cout << "正在处理： " << i << endl;
@@ -240,7 +236,7 @@ bool OutputResult(ReadFile read,string output,double elevation)
 		}
 		else
 		{
-			Output << "该历元数据有误：\n";
+			Output << "该历元数据有误：";
 			Output << setw(4) << oDatas[i].gtime.year << setw(3) << oDatas[i].gtime.month << setw(3) << oDatas[i].gtime.day
 				<< setw(3) << oDatas[i].gtime.hour << setw(3) << oDatas[i].gtime.minute << setw(11) << fixed << setprecision(7) 
 				<< oDatas[i].gtime.second<< endl;
