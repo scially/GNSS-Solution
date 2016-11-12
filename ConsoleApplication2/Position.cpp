@@ -11,7 +11,7 @@
 //LEAPSeconds 跳秒
 //stationPoinst 测站坐标，初始值为(0,0,0)
 //Rr接收机钟差
-SatPoint SatPosition(const Time& obsTime,const Point& stationPoint, double pL, const NFileRecord& nData, double &SatCLK, double LEAPSeconds, double Rr)
+SatPoint SatPosition(const Time& obsTime, const Point& stationPoint, double pL, const NFileRecord& nData, double &SatCLK, double LEAPSeconds, double Rr)
 {
 	SatPoint satpoint;
 	satpoint.PRN = nData.PRN;
@@ -121,19 +121,16 @@ NFileRecord GetNFileRecordByObsTime(const Time& obsTime, const vector<NFileRecor
 //PXYZ 测站近似坐标
 //SatCLK 卫星钟差
 //Rr 接收机钟差
-bool CalculationPostion(Point PXYZ, OEpochData &oData, Point &Position, const vector<NFileRecord>& nDatas, double LeapSeconds,double &Rr,double elvation)
+bool CalculationPostion(Point PXYZ, OEpochData &oData, Point &Position, const vector<NFileRecord>& nDatas, double LeapSeconds, double &Rr, double elvation)
 {
 	Point Position1;
 	//星历中的测站近似坐标
 	Position = PXYZ;
-	//对流层、电离层改正
-	double ion = 0;
-	double trop = 0;
 	//卫星数是否大于4
 	if (oData.satsums < 4) return false;
 	//初始化卫星钟差
 	map<string, double> SatCLKs;
-	for (vector<NFileRecord>::size_type i = 0; i < nDatas.size();i++)
+	for (vector<NFileRecord>::size_type i = 0; i < nDatas.size(); i++)
 	{
 		SatCLKs[nDatas[i].PRN] = 0.0;
 	}
@@ -142,7 +139,7 @@ bool CalculationPostion(Point PXYZ, OEpochData &oData, Point &Position, const ve
 	//迭代计算测站坐标,控制迭代次数
 	int iter_count = 0;
 	while (abs(Position.x - Position1.x)>1e-10 || abs(Position.y - Position1.y) > 1e-10 || abs(Position.z - Position1.z) > 1e-10)
-	{	
+	{
 		//构建方程系数
 		vector<double> vB;
 		vector<double> vL;
@@ -155,23 +152,29 @@ bool CalculationPostion(Point PXYZ, OEpochData &oData, Point &Position, const ve
 			//根据观测时间选择最佳轨道卫星
 			NFileRecord _nData = GetNFileRecordByObsTime(oData.gtime, nDatas, oData.AllTypeDatas[C1].at(i).PRN);
 			//卫星钟差，每颗卫星钟差均不一样，因此要根据PRN来找上次计算出的这颗卫星钟差
-			double &SatCLK = SatCLKs[_nData.PRN];	
+			double &SatCLK = SatCLKs[_nData.PRN];
 			double PObs = oData.AllTypeDatas[C1].at(i).Obs;
 			//卫星位置
-			SatPoint satpoint;
-			
+			SatPoint satpoint = SatPosition(oData.gtime, Position, PObs, _nData, SatCLK, LeapSeconds, Rr);
+			if (oData.AllTypeDatas[P1].at(i).Obs != 0)   satpoint = SatPosition(oData.gtime, Position, PObs, _nData, SatCLK, LeapSeconds, Rr);
+			//卫星高度角判断
+			double azel[2];
+			if (!Elevation(Position, satpoint, elvation, azel)) continue;
+			double trop = Trop(Position, satpoint, azel);
+			//无电离层模型+对流层改正
+			/*PObs -= trop;
+			if (oData.AllTypeDatas[P1].at(i).Obs != 0)
+			{
+			PObs = oData.AllTypeDatas[P1].at(i).Obs - trop;
+			if (oData.AllTypeDatas[P2].at(i).Obs != 0)  PObs = 2.54573*PObs - 1.54573*(oData.AllTypeDatas[P2].at(i).Obs - trop);
+			}*/
+			PObs = oData.AllTypeDatas[C1].at(i).Obs - trop;
 			//无电离层模型
 			if (oData.AllTypeDatas[P1].at(i).Obs != 0)
 			{
-				PObs = oData.AllTypeDatas[P1].at(i).Obs;
-				satpoint = SatPosition(oData.gtime, Position, PObs, _nData, SatCLK, LeapSeconds, Rr);
-				//if (oData.AllTypeDatas[P2].at(i).Obs != 0)  PObs = 2.54573*PObs - 1.54573*oData.AllTypeDatas[P2].at(i).Obs;
+			PObs = oData.AllTypeDatas[P1].at(i).Obs;
+			if (oData.AllTypeDatas[P2].at(i).Obs != 0)  PObs = 2.54573*PObs - 1.54573*(oData.AllTypeDatas[P2].at(i).Obs);
 			}
-			else satpoint = SatPosition(oData.gtime, Position, PObs, _nData, SatCLK, LeapSeconds, Rr);
-			//卫星高度角判断
-			double azel[2];
-			if (!Elevation(Position,satpoint,elvation,azel)) continue;
-
 			double deta_x = satpoint.point.x - Position.x;
 			double deta_y = satpoint.point.y - Position.y;
 			double deta_z = satpoint.point.z - Position.z;
@@ -179,15 +182,15 @@ bool CalculationPostion(Point PXYZ, OEpochData &oData, Point &Position, const ve
 			double li = deta_x / Rj;
 			double mi = deta_y / Rj;
 			double ni = deta_z / Rj;
-			double l = PObs - Rj + C*SatCLK - C*Rr; 
+			double l = PObs - Rj + C*SatCLK - C*Rr;
 			vB.push_back(-li);
 			vB.push_back(-mi);
 			vB.push_back(-ni);
 			vB.push_back(1.0);
 			vL.push_back(l);
 		}
-		if (vL.size() < 4)  return false; 
-		Matrix B(&vB[0],vB.size()/4, 4);
+		if (vL.size() < 4)  return false;
+		Matrix B(&vB[0], vB.size() / 4, 4);
 		Matrix L(&vL[0], vL.size(), 1);
 		Matrix detaX(4, 1);
 		detaX = (B.Trans()*B).Inverse()*(B.Trans()*L);
@@ -200,7 +203,7 @@ bool CalculationPostion(Point PXYZ, OEpochData &oData, Point &Position, const ve
 	return true;
 }
 //elevation 高度截止角
-bool OutputResult(ReadFile read,string output,double elevation)
+bool OutputResult(ReadFile read, string output, double elevation)
 {
 	using namespace std;
 	//获取星历和观测数据
@@ -227,19 +230,19 @@ bool OutputResult(ReadFile read,string output,double elevation)
 		{
 			Output << setw(4) << oDatas[i].gtime.year << setw(3) << oDatas[i].gtime.month << setw(3) << oDatas[i].gtime.day
 				<< setw(3) << oDatas[i].gtime.hour << setw(3) << oDatas[i].gtime.minute << setw(11) << fixed << setprecision(7)
-				<< oDatas[i].gtime.second  ;
+				<< oDatas[i].gtime.second;
 			Output << setw(3) << oDatas[i].satsums;
 			Output << setw(18) << fixed << setprecision(4) << result.x
 				<< setw(15) << fixed << setprecision(4) << result.y
 				<< setw(15) << fixed << setprecision(4) << result.z
-                << setw(16) << fixed << setprecision(10) << Rr<<endl;
+				<< setw(16) << fixed << setprecision(10) << Rr << endl;
 		}
 		else
 		{
 			Output << "该历元数据有误：";
 			Output << setw(4) << oDatas[i].gtime.year << setw(3) << oDatas[i].gtime.month << setw(3) << oDatas[i].gtime.day
-				<< setw(3) << oDatas[i].gtime.hour << setw(3) << oDatas[i].gtime.minute << setw(11) << fixed << setprecision(7) 
-				<< oDatas[i].gtime.second<< endl;
+				<< setw(3) << oDatas[i].gtime.hour << setw(3) << oDatas[i].gtime.minute << setw(11) << fixed << setprecision(7)
+				<< oDatas[i].gtime.second << endl;
 		}
 	}
 	Output.close();

@@ -20,13 +20,13 @@ int main(){
 	//M2 = M1*M1;
 	//cout << M2;
 
-	string o = "d:\\系统文件\\桌面\\o文件\\SITE247J.01O";
-	string n = "d:\\系统文件\\桌面\\o文件\\SITE247J.01N";
-	//string o = "D:\\系统文件\\桌面\\o文件\\unb31090.09o";
-	//string n = "D:\\系统文件\\桌面\\o文件\\unb31090.09n";
-	string w = "D:\\系统文件\\桌面\\spp.pos";
+	string o = "SITE247J.01O";
+	string n = "SITE247J.01N";
+	//string o = "unb31090.09o";
+	//string n = "o文件\\unb31090.09n";
+	string w = "spp.pos";
 	ReadFile reader(o, n);
-	if (OutputResult(reader,w,10))
+	if (OutputResult(reader,w,15))
 	{
 		cout << "计算完毕！" << endl;
 	}

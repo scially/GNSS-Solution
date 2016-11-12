@@ -98,15 +98,26 @@ bool Elevation(const Point &station, const SatPoint &satpoint,double elvation,do
 	if (azel) { azel[0] = az; azel[1] = el; }
 	return el >elvation*PI / 180 ? true : false;
 }
-double Trop(const Point &station, const SatPoint &satpoint, OEpochData &oDatas,double *azel)
+//对流层改正
+double Trop(const Point &station, const SatPoint &satpoint,double *azel)
 {
-	//1.计算标准气象元素
 	BLHPoint blh = PointToBLHPoint(station);
-	double T = 20 - 0.0065*blh.H;
-	double P = 1013.25*pow((1 - 0.0000266*blh.H), 5.225);
-	double RH = 0.5*exp(-0.0006396*blh.H);
+	/* temparature at sea level */
+	const double temp0 = 15.0;
+	double hgt, pres, temp, e, z, trph, trpw;
 
-	//2.Saastamoninen模型
-	//double detaE=
-	return 0;
+	if (blh.H < -100.0 || 1E4 < blh.B || blh.L <= 0) return 0.0;
+
+	/* standard atmosphere */
+	hgt = blh.H < 0.0 ? 0.0 : blh.H;
+
+	pres = 1013.25*pow(1.0 - 2.2557E-5*hgt, 5.2568);
+	temp = temp0 - 6.5E-3*hgt + 273.16;
+	e = 6.108*0.5*exp((17.15*temp - 4684.0) / (temp - 38.45));
+
+	/* saastamoninen model */
+	z = PI / 2.0 - azel[1];
+	trph = 0.0022768*pres / (1.0 - 0.00266*cos(2.0*blh.B) - 0.00028*hgt / 1E3) / cos(z);
+	trpw = 0.002277*(1255.0 / temp + 0.05)*e / cos(z);
+	return trph + trpw;
 }
