@@ -1,4 +1,4 @@
-﻿生成启动时间为 2016/11/12 星期六 17:08:22。
+﻿生成启动时间为 2016/11/12 星期六 18:37:40。
      1>项目“D:\系统文件\桌面\测试\PositionUsingP\ConsoleApplication2\ConsoleApplication2.vcxproj”在节点 2 上(Build 个目标)。
      1>ClCompile:
          D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _LIB /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt Position.cpp
@@ -17,4 +17,4 @@
 
 生成成功。
 
-已用时间 00:00:01.13
+已用时间 00:00:01.56

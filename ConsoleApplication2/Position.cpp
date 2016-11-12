@@ -74,12 +74,12 @@ SatPoint SatPosition(const Time& obsTime,const Point& stationPoint, double pL, c
 		satpoint.point.x = sat_x*cos(L) - sat_y*cos(i)*sin(L);
 		satpoint.point.y = sat_x*sin(L) + sat_y*cos(i)*cos(L);
 		satpoint.point.z = sat_y*sin(i);
-		//11.地球自转改正,将卫星位置规划到接受信号时刻的位置
-		/*double deta_a = We*timeInterval/1000;
+		//11.地球自转改正,将卫星位置归化到接受信号时刻的位置
+		double deta_a = We*TransTime1;
 		double earth_x = satpoint.point.x, earth_y = satpoint.point.y;
 		satpoint.point.x = earth_x * cos(deta_a) + earth_y  * sin(deta_a);
 		satpoint.point.y = earth_y * cos(deta_a) - earth_x * sin(deta_a);
-		satpoint.point.z = satpoint.point.z;*/
+		satpoint.point.z = satpoint.point.z;
 		//12.卫星钟差改正
 		//计算相对论效应
 		//由于卫星非圆形轨道引起的相对论效应改正项
