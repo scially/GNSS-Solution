@@ -26,7 +26,7 @@ public:
 	Matrix operator -(const Matrix &m);	 	//两个矩阵相减
 	Matrix operator *(const Matrix &m);	 	//两个矩阵相乘
 	Matrix operator *(const double f);	 	//矩阵乘以常数,这里是矩阵在前，数字在后
-	Matrix& operator=(Matrix& m);
+	Matrix& operator=(const Matrix& m);
 	Matrix Inverse();
 	friend std::ostream& operator <<(std::ostream &os, const Matrix &m);//简单重载<<
 

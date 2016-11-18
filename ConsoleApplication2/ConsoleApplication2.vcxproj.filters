@@ -59,10 +59,10 @@
     <ClInclude Include="Tools.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="TString.h">
+    <ClInclude Include="Position.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Position.h">
+    <ClInclude Include="EString.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

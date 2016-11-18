@@ -1,7 +1,7 @@
 #include "ReadOFile.h"
 #include <iostream>
 #include <stdlib.h>
-#include "TString.h"
+#include "EString.h"
 #include <fstream>
 
 using std::ifstream;

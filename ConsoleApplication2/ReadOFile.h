@@ -2,7 +2,7 @@
 #define READOFILE_H_
 
 #include "DataStruct.h"
-#include "TString.h"
+#include "EString.h"
 #include <fstream>
 #include <string>
 class ReadOFile

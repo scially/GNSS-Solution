@@ -56,7 +56,7 @@ Matrix::Matrix(const Matrix &M)
 		item[i] = M.item[i];
 	}
 }
-Matrix& Matrix::operator=(Matrix & M)
+Matrix& Matrix::operator=(const Matrix & M)
 {
 	colNum = M.colNum;
 	rowNum = M.rowNum;

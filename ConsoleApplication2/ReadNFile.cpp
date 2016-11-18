@@ -1,12 +1,12 @@
 #include "ReadNFile.h"
 #include <string>
 #include "DataStruct.h"
-#include "TString.h"
+#include "EString.h"
 #include <iostream>
 #include <fstream>
 
 using namespace std;
-ReadNFile::ReadNFile(string filename)
+ReadNFile::ReadNFile(std::string filename)
 {
 	_filename = filename;
 }
@@ -40,7 +40,7 @@ NFileHeader ReadNFile::ReadNHeader()
 		{
 			for (int i = 0; i < 4; i++)
 			{
-				header.IonAlpha[i] = stof(line.substr(2 + 12 * i, 12));
+				header.IonAlpha[i] = stof((line.substr(2 + 12 * i, 12)));
 			}
 		}
 		if (line.find("ION BETA") != string::npos)
@@ -142,8 +142,6 @@ vector<NFileRecord> ReadNFile::ReadNRecord()
 			record.Reamrk1 = 0;
 			record.Remark2 = 0;
 		}
-
-
 		records.push_back(record);
 	}
 	fread.close();

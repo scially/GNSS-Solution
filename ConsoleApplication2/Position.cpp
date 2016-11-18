@@ -6,7 +6,7 @@
 #include <iomanip>
 #include <map>
 
-//CLK卫星钟差(s),初始值为0
+//CLK卫星钟差(s)
 //SendTime就是接收到信号时卫星的信号发射时间
 //LEAPSeconds 跳秒
 //stationPoinst 测站坐标，初始值为(0,0,0)
@@ -15,7 +15,7 @@ SatPoint SatPosition(const Time& obsTime, const Point& stationPoint, double pL, 
 {
 	SatPoint satpoint;
 	satpoint.PRN = nData.PRN;
-	/*****************************信号从卫星到接收机传播时间***************************************/
+	/********************信号从卫星到接收机传播时间******************************/
 	double TransTime0 = 0, TransTime1 = 0;
 	GTime GobsTime = UTC2GTime(obsTime);
 	//计算卫星信号传播时间
@@ -41,11 +41,11 @@ SatPoint SatPosition(const Time& obsTime, const Point& stationPoint, double pL, 
 			SendTime.seconds = GobsTime.seconds - TransTime1;
 		}
 		//2.计算观测瞬间卫星的平近点角M0,这里注意是严格 观测瞬间-参考时间
-		double timeInterval = (SendTime.week - nData.GPSWeek) * 7 * 86400 + (SendTime.seconds - nData.TOE);// +LEAPSeconds;
+		double TransTime = (SendTime.week - nData.GPSWeek) * 7 * 86400 + (SendTime.seconds - nData.TOE);// +LEAPSeconds;
 		//顾及一周（604800）开始或结束
-		if (timeInterval > 302400)   timeInterval -= 604800;
-		if (timeInterval < -302400)  timeInterval += 604800;
-		double M = nData.M0 + n*timeInterval;
+		if (TransTime > 302400)   TransTime -= 604800;
+		if (TransTime < -302400)  TransTime += 604800;
+		double M = nData.M0 + n*TransTime;
 		//3.计算偏近点角
 		double E = 0, E0 = M;
 		while (abs(E - E0) > 1.0e-14)
@@ -64,12 +64,12 @@ SatPoint SatPosition(const Time& obsTime, const Point& stationPoint, double pL, 
 		//7.对 u' r' i'进行摄动改正
 		double u = u1 + kesi_u;
 		double r = nData.sqrtA*nData.sqrtA *(1 - nData.e*cos(E)) + kesi_r;
-		double i = nData.i0 + kesi_i + nData.IDOT*timeInterval;
+		double i = nData.i0 + kesi_i + nData.IDOT*TransTime;
 		//8.计算卫星在轨道面坐标系中的位置
 		double sat_x = r*cos(u);
 		double sat_y = r*sin(u);
 		//9.计算观测瞬间升交点的经度L
-		double L = nData.OMEGA + (nData.OMEGA_DOT - We)*timeInterval - We*nData.TOE;
+		double L = nData.OMEGA + (nData.OMEGA_DOT - We)*TransTime - We*nData.TOE;
 		//10.计算卫星在瞬时地球坐标系中的位置
 		satpoint.point.x = sat_x*cos(L) - sat_y*cos(i)*sin(L);
 		satpoint.point.y = sat_x*sin(L) + sat_y*cos(i)*cos(L);
@@ -157,23 +157,25 @@ bool CalculationPostion(Point PXYZ, OEpochData &oData, Point &Position, const ve
 			//卫星位置
 			SatPoint satpoint = SatPosition(oData.gtime, Position, PObs, _nData, SatCLK, LeapSeconds, Rr);
 			if (oData.AllTypeDatas[P1].at(i).Obs != 0)   satpoint = SatPosition(oData.gtime, Position, PObs, _nData, SatCLK, LeapSeconds, Rr);
-			//卫星高度角判断
+			//卫星高度角
 			double azel[2];
 			if (!Elevation(Position, satpoint, elvation, azel)) continue;
-			double trop = Trop(Position, satpoint, azel);
+
 			//无电离层模型+对流层改正
+			double trop = Trop(Position, satpoint, azel);
 			/*PObs -= trop;
 			if (oData.AllTypeDatas[P1].at(i).Obs != 0)
 			{
 			PObs = oData.AllTypeDatas[P1].at(i).Obs - trop;
 			if (oData.AllTypeDatas[P2].at(i).Obs != 0)  PObs = 2.54573*PObs - 1.54573*(oData.AllTypeDatas[P2].at(i).Obs - trop);
 			}*/
-			PObs = oData.AllTypeDatas[C1].at(i).Obs - trop;
+
 			//无电离层模型
+			PObs = oData.AllTypeDatas[C1].at(i).Obs;
 			if (oData.AllTypeDatas[P1].at(i).Obs != 0)
 			{
-			PObs = oData.AllTypeDatas[P1].at(i).Obs;
-			if (oData.AllTypeDatas[P2].at(i).Obs != 0)  PObs = 2.54573*PObs - 1.54573*(oData.AllTypeDatas[P2].at(i).Obs);
+				PObs = oData.AllTypeDatas[P1].at(i).Obs;
+				if (oData.AllTypeDatas[P2].at(i).Obs != 0)  PObs = 2.54573*PObs - 1.54573*(oData.AllTypeDatas[P2].at(i).Obs);
 			}
 			double deta_x = satpoint.point.x - Position.x;
 			double deta_y = satpoint.point.y - Position.y;
@@ -194,7 +196,7 @@ bool CalculationPostion(Point PXYZ, OEpochData &oData, Point &Position, const ve
 		Matrix L(&vL[0], vL.size(), 1);
 		Matrix detaX(4, 1);
 		detaX = (B.Trans()*B).Inverse()*(B.Trans()*L);
-		//改正测站坐标以及接收机钟差
+
 		Position.x += detaX.get(0, 0);
 		Position.y += detaX.get(1, 0);
 		Position.z += detaX.get(2, 0);
@@ -206,21 +208,21 @@ bool CalculationPostion(Point PXYZ, OEpochData &oData, Point &Position, const ve
 bool OutputResult(ReadFile read, string output, double elevation)
 {
 	using namespace std;
-	//获取星历和观测数据
+	//读取星历和观测数据
 	OHeader oHeader = read._ofile.ReadHeader();
 	vector<OEpochData> oDatas = read._ofile.ReadData();
 	NFileHeader nHeader = read._nfile.ReadNHeader();
 	vector<NFileRecord> nDatas = read._nfile.ReadNRecord();
 	//接收机钟差
 	double Rr = 0;
-	//测试计算结果
-	//CalculationPostion(oHeader.PXYZ, oDatas[0], result,nDatas, nHeader.LeapSeconds,Rr);
+
 	//输出每个观测历元的计算结果
-	ofstream Output(output);
+	ofstream ResFile(output);
 	cout << "总历元数： " << oDatas.size() << endl;
-	if (!Output.is_open()) return false;
-	Output << "        观测历元       " << "    卫星数   " << "      X       " << "      Y       " << "      Z       "
-		<< "    接收机钟差     \n";
+	if (!ResFile.is_open()) return false;
+	ResFile << setw(16)<< "观测历元" << setw(18) << "卫星数" 
+		    << setw(8) << "X" << setw(16) << "Y" << setw(12) << "Z" 
+			<< setw(23) << "接收机钟差\n";
 
 	for (vector<OEpochData>::size_type i = 0; i < oDatas.size(); i++)
 	{
@@ -228,23 +230,23 @@ bool OutputResult(ReadFile read, string output, double elevation)
 		Point result;
 		if (CalculationPostion(oHeader.PXYZ, oDatas[i], result, nDatas, nHeader.LeapSeconds, Rr, elevation))
 		{
-			Output << setw(4) << oDatas[i].gtime.year << setw(3) << oDatas[i].gtime.month << setw(3) << oDatas[i].gtime.day
-				<< setw(3) << oDatas[i].gtime.hour << setw(3) << oDatas[i].gtime.minute << setw(11) << fixed << setprecision(7)
-				<< oDatas[i].gtime.second;
-			Output << setw(3) << oDatas[i].satsums;
-			Output << setw(18) << fixed << setprecision(4) << result.x
-				<< setw(15) << fixed << setprecision(4) << result.y
-				<< setw(15) << fixed << setprecision(4) << result.z
-				<< setw(16) << fixed << setprecision(10) << Rr << endl;
+			ResFile << setw(4) << oDatas[i].gtime.year << setw(3) << oDatas[i].gtime.month << setw(3) << oDatas[i].gtime.day
+				    << setw(3) << oDatas[i].gtime.hour << setw(3) << oDatas[i].gtime.minute << setw(11) << fixed << setprecision(7)
+				    << oDatas[i].gtime.second;
+			ResFile << setw(4) << oDatas[i].satsums;
+			ResFile << setw(16) << fixed << setprecision(4) << result.x
+				    << setw(15) << fixed << setprecision(4) << result.y
+				    << setw(15) << fixed << setprecision(4) << result.z
+				    << setw(16) << fixed << setprecision(10) << Rr << endl;
 		}
 		else
 		{
-			Output << "该历元数据有误：";
-			Output << setw(4) << oDatas[i].gtime.year << setw(3) << oDatas[i].gtime.month << setw(3) << oDatas[i].gtime.day
-				<< setw(3) << oDatas[i].gtime.hour << setw(3) << oDatas[i].gtime.minute << setw(11) << fixed << setprecision(7)
-				<< oDatas[i].gtime.second << endl;
+			ResFile << "该历元数据有误：";
+			ResFile << setw(4) << oDatas[i].gtime.year << setw(3) << oDatas[i].gtime.month << setw(3) << oDatas[i].gtime.day
+				    << setw(3) << oDatas[i].gtime.hour << setw(3) << oDatas[i].gtime.minute << setw(11) << fixed << setprecision(7)
+				    << oDatas[i].gtime.second << endl;
 		}
 	}
-	Output.close();
+	ResFile.close();
 	return true;
 }
