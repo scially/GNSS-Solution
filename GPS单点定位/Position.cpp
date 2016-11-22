@@ -121,7 +121,7 @@ NFileRecord GetNFileRecordByObsTime(const Time& obsTime, const vector<NFileRecor
 //PXYZ 测站近似坐标
 //SatCLK 卫星钟差
 //Rr 接收机钟差
-bool CalculationPostion(Point PXYZ, OEpochData &oData, Point &Position, const vector<NFileRecord>& nDatas, double LeapSeconds, double &Rr, double elvation)
+bool CalculationPostion(Point PXYZ, OEpochData &oData, Point &Position, const vector<NFileRecord>& nDatas, double LeapSeconds, double &Rr, map<string, double> &SatCLKs,double elvation)
 {
 	Point Position1;
 	//星历中的测站近似坐标
@@ -130,7 +130,6 @@ bool CalculationPostion(Point PXYZ, OEpochData &oData, Point &Position, const ve
 	if (!CheckDatas(oData)) return false;
 
 	//初始化卫星钟差
-	map<string, double> SatCLKs;
 	for (vector<NFileRecord>::size_type i = 0; i < nDatas.size(); i++)
 	{
 		SatCLKs[nDatas[i].PRN] = 0.0;
@@ -158,8 +157,7 @@ bool CalculationPostion(Point PXYZ, OEpochData &oData, Point &Position, const ve
 			SatPoint satpoint = SatPosition(oData.gtime, Position, PObs, _nData, SatCLK, LeapSeconds, Rr);
 			if (oData.AllTypeDatas[P1].at(i).Obs != 0)   satpoint = SatPosition(oData.gtime, Position, PObs, _nData, SatCLK, LeapSeconds, Rr);
 			//卫星高度角
-			double azel[2];
-			if (!Elevation(Position, satpoint, elvation, azel)) continue;
+			if (!Elevation(Position, satpoint, elvation)) continue;
 #if 1
 			//无电离层模型
 			PObs = oData.AllTypeDatas[C1].at(i).Obs;
@@ -173,7 +171,7 @@ bool CalculationPostion(Point PXYZ, OEpochData &oData, Point &Position, const ve
 #if 0  
 			//对流层改正
 			double trop = Trop(Position, satpoint, azel);
-			pobs -= trop;
+			Pobs -= trop;
 			if (odata.alltypedatas[p1].at(i).obs != 0)
 			{
 				pobs = odata.alltypedatas[p1].at(i).obs - trop;
@@ -217,9 +215,9 @@ bool OutputResult(ReadFile read, string output, double elevation)
 	vector<OEpochData> oDatas = read._ofile.ReadData();
 	NFileHeader nHeader = read._nfile.ReadNHeader();
 	vector<NFileRecord> nDatas = read._nfile.ReadNRecord();
-	//接收机钟差
+	//接收机钟差,接收机钟差
 	double Rr = 0;
-
+	map<string, double> SatCLKs;
 	//输出每个观测历元的计算结果
 	ofstream ResFile(output);
 	cout << "总历元数： " << oDatas.size() << endl;
@@ -230,7 +228,7 @@ bool OutputResult(ReadFile read, string output, double elevation)
 	{
 		cout << "正在处理： " << i << endl;
 		Point result;
-		if (CalculationPostion(oHeader.PXYZ, oDatas[i], result, nDatas, nHeader.LeapSeconds, Rr, elevation))
+		if (CalculationPostion(oHeader.PXYZ, oDatas[i], result, nDatas, nHeader.LeapSeconds, Rr, SatCLKs, elevation))
 			EString::OutPut(ResFile, oDatas[i], Rr, &result);
 		else   
 			EString::OutPut(ResFile, oDatas[i], Rr);

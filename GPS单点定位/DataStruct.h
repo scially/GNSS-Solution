@@ -14,6 +14,7 @@
 
 #define WGS84A  6378137.0     //WGS84坐标系长半轴
 #define WGS84f  1/298.257223565 //WGS84坐标系偏心率
+
 //v2.x Rinex文件头
 using std::string;
 using std::vector;
@@ -27,20 +28,14 @@ enum ObsType{
 };
 struct Point  //空间坐标系
 {
-	double x;
-	double y;
-	double z;
-	Point()
-	{
-		x = 0;
-		y = 0;
-		z = 0;
-	}
+	double x=0;
+	double y=0;
+	double z=0;
 };
-struct SatPoint   //卫星坐标
+struct SatPoint  //卫星坐标
 { 
 	Point point;
-	string PRN;
+	string PRN="";
 };
 struct BLHPoint  //大地坐标系,单位为弧度
 {
