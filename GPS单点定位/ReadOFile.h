@@ -9,8 +9,8 @@ class ReadOFile
 {
 public:
 	ReadOFile(std::string ofile);
-	//不要使用默认构造函数！
-	ReadOFile();
+	ReadOFile(const ReadOFile& ofile);
+	explicit ReadOFile();
 	~ReadOFile();
 	OHeader ReadHeader();
 	std::vector<OEpochData> ReadData();

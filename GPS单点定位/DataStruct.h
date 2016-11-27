@@ -6,6 +6,7 @@
 #include <map>
 #include <cmath>
 #include <map>
+#include "MTime.h"
 
 #define GM 3.986005E14 //万有引力常数G与地球质量M之乘积
 #define C  2.99792458E8 //光速
@@ -14,8 +15,8 @@
 
 #define WGS84A  6378137.0     //WGS84坐标系长半轴
 #define WGS84f  1/298.257223565 //WGS84坐标系偏心率
+#define NMAX    11   //切比雪夫拟合阶数+1
 
-//v2.x Rinex文件头
 using std::string;
 using std::vector;
 using std::map;
@@ -24,18 +25,18 @@ enum ObsType{
 	P1,
 	P2,
 	L1,
-	L2=4,
+	L2 = 4,
 };
 struct Point  //空间坐标系
 {
-	double x=0;
-	double y=0;
-	double z=0;
+	double x = 0;
+	double y = 0;
+	double z = 0;
 };
 struct SatPoint  //卫星坐标
-{ 
+{
 	Point point;
-	string PRN="";
+	string PRN = "";
 };
 struct BLHPoint  //大地坐标系,单位为弧度
 {
@@ -61,19 +62,7 @@ struct ENUPoint  //站心地平坐标系
 		U = 0;
 	}
 };
-struct Time{  //正常时UTC
-	int year;
-	int month;
-	int day;
-	int hour;
-	int minute;
-	double second;
-};
-struct GTime  //GPS时
-{
-	int week;
-	double seconds;
-};
+
 struct OHeader{  //O文件文件头
 	string version;
 	char type; //文件类型
@@ -148,7 +137,7 @@ struct NFileRecord  //PRN编号的卫星的广播星历
 	//广播轨道5
 	double IDOT; //i的变化率
 	double L2;
-	double GPSWeek; //GPS周数，与TOE一同表示星历的参考时刻
+	int GPSWeek; //GPS周数，与TOE一同表示星历的参考时刻
 	double L2_P;
 	//广播轨道6
 	double SatAccuracy;
@@ -160,5 +149,21 @@ struct NFileRecord  //PRN编号的卫星的广播星历
 	double FitInterval;
 	double Reamrk1;
 	double Remark2;
+};
+//xCoffee yCoffee zCoffee: x,y,z拟合系数
+struct ChebyCoeff
+{
+	double XCoeff[NMAX + 2];
+	double YCoeff[NMAX + 2];
+	double ZCoeff[NMAX + 2];
+	ChebyCoeff()
+	{
+		for (int i = 0; i < NMAX + 2; i++)
+		{
+			XCoeff[i] = 0;
+			YCoeff[i] = 0;
+			ZCoeff[i] = 0;
+		}
+	}
 };
 #endif

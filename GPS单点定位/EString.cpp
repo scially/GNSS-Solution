@@ -21,15 +21,11 @@ std::ofstream& EString::OutPut(std::ofstream &ofs, const OEpochData& oData, doub
 	if (result == nullptr)
 	{
 		ofs << "该历元数据有误：";
-		ofs << std::setw(4) << oData.gtime.year << std::setw(3) << oData.gtime.month << std::setw(3) << oData.gtime.day
-			<< std::setw(3) << oData.gtime.hour << std::setw(3) << oData.gtime.minute << std::setw(11) << std::fixed << std::setprecision(7)
-			<< oData.gtime.second << std::endl;
+		ofs << oData.gtime<< std::endl;
 	}
 	else
 	{
-		ofs << std::setw(4) << oData.gtime.year << std::setw(3) << oData.gtime.month << std::setw(3) << oData.gtime.day
-			<< std::setw(3) << oData.gtime.hour << std::setw(3) << oData.gtime.minute << std::setw(11) << std::fixed << std::setprecision(7)
-			<< oData.gtime.second;
+		ofs << oData.gtime;
 		ofs << std::setw(4) << oData.satsums;
 		ofs << std::setw(16) << std::fixed << std::setprecision(4) << result->x
 			<< std::setw(15) << std::fixed << std::setprecision(4) << result->y

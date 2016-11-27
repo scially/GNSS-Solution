@@ -5,8 +5,8 @@ class ReadNFile
 {
 public:
 	ReadNFile(std::string filename);
-	//不要使用默认构造函数！
-	ReadNFile();
+	explicit ReadNFile();
+	ReadNFile(const ReadNFile& nfile);
 	~ReadNFile();
 	NFileHeader ReadNHeader();
 	vector<NFileRecord> ReadNRecord();

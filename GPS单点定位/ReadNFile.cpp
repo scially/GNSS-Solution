@@ -6,9 +6,8 @@
 #include <fstream>
 
 using namespace std;
-ReadNFile::ReadNFile(std::string filename)
+ReadNFile::ReadNFile(std::string filename) :_filename(filename)
 {
-	_filename = filename;
 }
 
 ReadNFile::ReadNFile()
@@ -17,7 +16,9 @@ ReadNFile::ReadNFile()
 ReadNFile::~ReadNFile()
 {
 }
-
+ReadNFile::ReadNFile(const ReadNFile& nfile) :_filename(nfile._filename)
+{
+}
 NFileHeader ReadNFile::ReadNHeader()
 {
 	NFileHeader header;
@@ -120,7 +121,7 @@ vector<NFileRecord> ReadNFile::ReadNRecord()
 		getline(fread, line);
 		record.IDOT = stod(line.substr(3, 19));
 		record.L2 = stod(line.substr(22, 19));
-		record.GPSWeek = stod(line.substr(41, 19));
+		record.GPSWeek =int(stod(line.substr(41, 19)));
 		record.L2_P = stod(line.substr(60, 19));
 		//¹ã²¥¹ìµÀ6
 		getline(fread, line);

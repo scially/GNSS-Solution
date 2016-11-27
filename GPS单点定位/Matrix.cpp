@@ -1,6 +1,8 @@
 #include "Matrix.h"
-#include <iostream>
+#include <vector>
 #include <cmath>
+#include <fstream>
+#include <sstream>
 
 using namespace std;
 Matrix::Matrix(int m, int n)
@@ -39,7 +41,7 @@ Matrix::Matrix(int n)
 		for (int j = 0; j < n; j++)
 		{
 			if (i == j)
-				set(i, j, 1);
+				set(i, j, 1.0);
 			else
 				set(i, j, 0);
 		}
@@ -68,6 +70,27 @@ Matrix& Matrix::operator=(const Matrix & M)
 	}
 	return *this;
 }
+
+Matrix Matrix::FromFile(std::string file)
+{
+	ifstream read(file);
+	if (!read.is_open())
+	{
+		cout << "Matrix::未能打开文件\n";
+	}
+	int rows = 0;
+	string line;
+	vector<double> nums;
+	while (getline(read, line))
+	{
+		istringstream record(line);
+		double num = 0.0;
+		while (record >> num)  nums.push_back(num);
+		rows++;
+	}
+	return Matrix(&(*nums.begin()), rows-1, nums.size() / (rows-1));
+}
+
 Matrix::~Matrix()
 {
 	delete[] item;
@@ -110,15 +133,15 @@ void Matrix::RowSwap(int i, int j)
 Matrix Matrix::Trans() const
 {
 	Matrix _copy = *this;
-	for (int i = 0; i < rowNum; i++)
+	_copy.rowNum = this->colNum;
+	_copy.colNum = this->rowNum;
+	for (int i = 0; i < _copy.rowNum; i++)
 	{
-		for (int j = 0; j < colNum; j++)
+		for (int j = 0; j < _copy.colNum; j++)
 		{
 			_copy.set(i, j, get(j, i));
 		}
 	}
-	_copy.rowNum = this->colNum;
-	_copy.colNum = this->rowNum;
 	return _copy;
 }
 int Matrix::getRowNum() const
@@ -134,11 +157,8 @@ ostream& operator <<(ostream &os, const Matrix &m)
 	for (int i = 0; i < m.rowNum; i++)
 	{
 		for (int j = 0; j < m.colNum; j++)
-		{
-			os << m.get(i, j);
-			if (j != m.colNum - 1) os << " ";
-			else os << "\n";
-		}
+			os << std::setw(10) << std::fixed << std::setprecision(4) << m.get(i, j) << " ";
+		os << "\n";
 	}
 	return os;
 }
@@ -219,9 +239,9 @@ Matrix Matrix::Inverse()
 		double max = abs(_copy.get(i, i));
 		for (int j = i; j < colNum; j++)
 		{
-			if (abs(_copy.get(j, j))>max)
+			if (abs(_copy.get(j, i))>max)
 			{
-				max = abs(_copy.get(j, j));
+				max = abs(_copy.get(j, i));
 				MaxRow = j;
 			}
 		}
@@ -244,5 +264,16 @@ Matrix Matrix::Inverse()
 			result.RowSwap(i, j, r);
 		}
 	}
+	result.FlowOver();
 	return result;
+}
+void Matrix::FlowOver()
+{
+	for (int i = 0; i < rowNum;i++)
+	{
+		for (int j = 0; j < colNum;j++)
+		{
+			if (abs(get(i, j)) <= OVERFLOWED) set(i, j, 0);
+		}
+	}
 }

@@ -79,6 +79,7 @@
     <ClCompile Include="EString.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Matrix.cpp" />
+    <ClCompile Include="MTime.cpp" />
     <ClCompile Include="Position.cpp" />
     <ClCompile Include="ReadFile.cpp" />
     <ClCompile Include="ReadNFile.cpp" />
@@ -89,6 +90,7 @@
     <ClInclude Include="DataStruct.h" />
     <ClInclude Include="EString.h" />
     <ClInclude Include="Matrix.h" />
+    <ClInclude Include="MTime.h" />
     <ClInclude Include="Position.h" />
     <ClInclude Include="ReadFile.h" />
     <ClInclude Include="ReadNFile.h" />

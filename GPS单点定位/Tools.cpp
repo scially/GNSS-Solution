@@ -1,18 +1,11 @@
 #include "Tools.h"
 #include "Matrix.h"
+#include <iostream>
 
-double UTC2JD(Time time)
+double UTC2JD(const Time& time)
 {
 	double hour = time.hour + time.minute / 60.0 + time.second / 3600.0;
 	return 1721013.5 + 367 * time.year - int(7.0 / 4 * (time.year + (time.month + 9) / 12)) + time.day + hour / 24 + (275 * time.month / 9);
-}
-GTime UTC2GTime(Time time)
-{
-	GTime gt;
-	double JD = UTC2JD(time);
-	gt.week = int((JD - 2444244.5) / 7.0);
-	gt.seconds = (JD - 2444244.5 - gt.week * 7.0) * 86400.0;
-	return gt;
 }
 int MinOfNums(const vector<double>& nums)
 {
@@ -55,7 +48,7 @@ bool XYZToENU(const Point& station, const SatPoint& satpoint, ENUPoint &ENU)
 	double distance = 0;
 	if (sqrt(pow(satpoint.point.x, 2) + pow(satpoint.point.y, 2) + pow(satpoint.point.z, 2)) < WGS84A) return false;
 	double r_vector[3];
-	r_vector[0] = satpoint.point.x - station.x; 
+	r_vector[0] = satpoint.point.x - station.x;
 	r_vector[1] = satpoint.point.y - station.y;
 	r_vector[2] = satpoint.point.z - station.z;
 	distance = sqrt(pow(r_vector[0], 2) + pow(r_vector[1], 2) + pow(r_vector[2], 2));
@@ -68,7 +61,7 @@ bool XYZToENU(const Point& station, const SatPoint& satpoint, ENUPoint &ENU)
 	E[1] = -sin(rBLH.B)*cos(rBLH.L); E[4] = -sin(rBLH.B)*sin(rBLH.L); E[7] = cos(rBLH.B);
 	E[2] = cos(rBLH.B)*cos(rBLH.L);  E[5] = cos(rBLH.B)*sin(rBLH.L);  E[8] = sin(rBLH.B);
 	Matrix enu = Matrix(E, 3, 3)*Matrix(r_vector, 3, 1);
-	
+
 	ENU.E = enu.get(0, 0); ENU.N = enu.get(1, 0); ENU.U = enu.get(2, 0);
 	return true;
 }
@@ -79,7 +72,7 @@ bool CheckDatas(OEpochData &oData)
 	return true;
 }
 //计算卫星高度角，并对观测数据进行处理
-bool Elevation(const Point &station, const SatPoint &satpoint,double elvation)
+bool Elevation(const Point &station, const SatPoint &satpoint, double elvation)
 {
 	ENUPoint enu;
 	if (!XYZToENU(station, satpoint, enu)) return true;
@@ -114,3 +107,13 @@ double Trop(const Point &station, const SatPoint &satpoint)
 	trpw = 0.002277*(1255.0 / temp + 0.05)*e / cos(z);
 	return trph + trpw;
 }
+//切比雪夫计算式
+//n 多项式阶数
+//x 返回Tn(x)
+double Chebyshev(double x, int n)
+{
+	if (n == 0) return 1.0;
+	else if (n == 1) return x;
+	else return 2 * x * Chebyshev(x, n - 1) - Chebyshev(x, n - 2);
+}
+

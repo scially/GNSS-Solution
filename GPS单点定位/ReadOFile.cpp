@@ -6,13 +6,14 @@
 
 using std::ifstream;
 using std::getline;
-ReadOFile::ReadOFile(string ofile)
-{
-	_ofile = ofile;
-}
-ReadOFile::ReadOFile()
-{
-}
+ReadOFile::ReadOFile(string ofile) :_ofile(ofile){}
+
+//ReadOFile::ReadOFile()
+//{
+//}
+ReadOFile::ReadOFile(){}
+
+ReadOFile::ReadOFile(const ReadOFile& ofile) :_ofile(ofile._ofile){}
 ReadOFile::~ReadOFile()
 {
 }
@@ -126,8 +127,7 @@ vector<OEpochData> ReadOFile::ReadData()
 		std::cout << "文件打开失败\n";
 	}
 	OHeader header = ReadHeader();
-	//观测值类型超过5，则续行记录
-	bool isMultiply = header.sigsnums > 5 ? true : false;
+
 	//跳过文件头
 	string line;
 	while (getline(fread, line))
@@ -138,7 +138,7 @@ vector<OEpochData> ReadOFile::ReadData()
 	//读取观测数据
 	while (getline(fread, line))
 	{
-		if (line.substr(0, 80).size() == 0) break;
+		if (line.substr(0, 80).size() == 0) continue;
 		OEpochData epochdata;
 		vector<string> prns; //卫星PRN列表
 		//历元时间
@@ -201,18 +201,19 @@ vector<OEpochData> ReadOFile::ReadData()
 				l2Pos = i;
 				continue;
 			}
-		}
+		}	
 		//一个历元所有卫星的所有类型的观测数据
 		for (int i = 0; i < epochdata.satsums; i++)
 		{
+			//观测值类型超过5，则续行记录
+			int multiply = header.sigsnums % 5 == 0 ? header.sigsnums / 5 : header.sigsnums / 5 + 1;
 			string strOrx;
-			getline(fread, line);
-			strOrx = line;
-			strOrx += string(' ', 80 - line.size());
-			if (isMultiply)
+
+			while (multiply)
 			{
 				getline(fread, line);
 				strOrx += line + string(' ', 80 - line.size());  //补全格式
+				multiply--;
 			}
 			//读取观测值
 			if (c1Pos != -1 && strOrx.substr(c1Pos * 16, 14) != string(' ', 14))
