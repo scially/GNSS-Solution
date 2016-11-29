@@ -1,4 +1,4 @@
-﻿生成启动时间为 2016/11/27 星期日 21:00:35。
+﻿生成启动时间为 2016/11/29 星期二 16:51:55。
      1>项目“D:\系统文件\桌面\GPS\GPS单点定位\GPS单点定位.vcxproj”在节点 2 上(Build 个目标)。
      1>ClCompile:
          D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _LIB /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt Main.cpp
@@ -18,4 +18,4 @@
 
 生成成功。
 
-已用时间 00:00:01.07
+已用时间 00:00:00.74

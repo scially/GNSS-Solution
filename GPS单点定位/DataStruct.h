@@ -16,6 +16,7 @@
 #define WGS84A  6378137.0     //WGS84坐标系长半轴
 #define WGS84f  1/298.257223565 //WGS84坐标系偏心率
 #define NMAX    11   //切比雪夫拟合阶数+1
+#define LMAX    40   //拉格朗日拟合阶数
 
 using std::string;
 using std::vector;
@@ -165,5 +166,10 @@ struct ChebyCoeff
 			ZCoeff[i] = 0;
 		}
 	}
+};
+struct LargnageCoeff
+{
+	GTime gtime;
+	Point point;
 };
 #endif

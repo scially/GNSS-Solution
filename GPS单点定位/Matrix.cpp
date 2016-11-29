@@ -264,7 +264,7 @@ Matrix Matrix::Inverse()
 			result.RowSwap(i, j, r);
 		}
 	}
-	result.FlowOver();
+	//result.FlowOver();
 	return result;
 }
 void Matrix::FlowOver()

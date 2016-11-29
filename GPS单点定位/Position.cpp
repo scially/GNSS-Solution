@@ -141,7 +141,7 @@ SatPoint SatPosition(const Time& obsTime, const Point& stationPoint, double pL, 
 	return satpoint;
 }
 //前两个元素代表起始和结束时间
-//PRN 卫星编号 计算编号为ＰＲＮ的拟合系数
+//PRN 卫星编号 计算编号为PRN的拟合系数
 bool CoefficientofChebyShev(const vector<NFileRecord>& nDatas, map<string, ChebyCoeff>& m)
 {
 	//计算每个参考时刻的卫星的位置
@@ -154,25 +154,24 @@ bool CoefficientofChebyShev(const vector<NFileRecord>& nDatas, map<string, Cheby
 	{
 		//计算起始结束时间
 		//起始和结束分别外推半个小时，防止只有一个卫星星历
-		double start_sec = iter->second.begin()->GPSWeek * WeekSecond + iter->second.begin()->TOE - 1800;
-		double end_sec = (iter->second.end()-1 )->GPSWeek * WeekSecond + (iter->second.end() - 1)->TOE + 1800;
+		double start_sec = iter->second.begin()->GPSWeek * WeekSecond + iter->second.begin()->TOE /*- 1800*/;
+		double end_sec = (iter->second.end() - 1)->GPSWeek * WeekSecond + (iter->second.end() - 1)->TOE /*+ 1800*/;
 		ChebyCoeff xyzcoeff;
 		xyzcoeff.XCoeff[0] = start_sec;
 		xyzcoeff.XCoeff[1] = end_sec;
 		//采样间隔10min
-		int row = int(end_sec - start_sec) / 600;
+		int row = int(end_sec - start_sec) / 600 > NMAX ? int(end_sec - start_sec) / 600 : NMAX * 30;
 		Matrix mB(row + 1, NMAX);
 		Matrix xl(row + 1, 1);
 		Matrix yl(row + 1, 1);
 		Matrix zl(row + 1, 1);
-
 		for (int i = 0; i < mB.getRowNum(); i++)
 		{
-			GTime GObsTime = Sec2GTime((end_sec-start_sec)/row * i + start_sec);
+			GTime GObsTime = Sec2GTime((end_sec - start_sec) / row * i + start_sec);
 			//区间[ts,te]变换到[-1,1]
-			double change_sec = (2.0 *(GObsTime.week * WeekSecond + GObsTime.seconds) - (start_sec + end_sec)) / (end_sec - start_sec);
+			double change_sec = (2.0 *((end_sec - start_sec) / row * i + start_sec) - (start_sec + end_sec)) / (end_sec - start_sec);
 			//B
-			for (int ncofee = 0; ncofee < NMAX; ncofee++)  
+			for (int ncofee = 0; ncofee < NMAX; ncofee++)
 				mB.set(i, ncofee, Chebyshev(change_sec, ncofee));
 			//星历中PRN卫星的所有历元的位置
 			SatPoint satpoint;
@@ -186,6 +185,7 @@ bool CoefficientofChebyShev(const vector<NFileRecord>& nDatas, map<string, Cheby
 		//解算拟合系数
 		Matrix Ninv = (mB.Trans()*mB).Inverse();
 		Matrix Xcoeff = Ninv*mB.Trans()*xl;
+		std::cout << Xcoeff << std::endl;
 		Matrix Ycoeff = Ninv*mB.Trans()*yl;
 		Matrix Zcoeff = Ninv*mB.Trans()*zl;
 		for (int i = 0; i < NMAX; i++)
@@ -198,7 +198,8 @@ bool CoefficientofChebyShev(const vector<NFileRecord>& nDatas, map<string, Cheby
 	}
 	return true;
 }
-//切比雪夫多项式计算卫星位置
+
+//切比雪夫多项式拟合卫星位置
 bool ChebyShev_SatPosition(const Time& obsTime, string PRN, const map<string, ChebyCoeff> &m, SatPoint& satpoint)
 {
 	satpoint.PRN = PRN;
@@ -212,6 +213,58 @@ bool ChebyShev_SatPosition(const Time& obsTime, string PRN, const map<string, Ch
 		satpoint.point.x += m.at(PRN).XCoeff[i + 2] * Chebyshev(change_Gobstime, i);
 		satpoint.point.y += m.at(PRN).YCoeff[i + 2] * Chebyshev(change_Gobstime, i);
 		satpoint.point.z += m.at(PRN).ZCoeff[i + 2] * Chebyshev(change_Gobstime, i);
+	}
+	return true;
+}
+//前两个元素代表起始和结束时间
+//PRN 卫星编号 计算编号为PRN的拟合系数
+bool LagrangeCoeff(const vector<NFileRecord>& nDatas, map<string, vector<LargnageCoeff>>& L)
+{
+	//计算每个参考时刻的卫星的位置
+	map<string, vector<NFileRecord>> nDatas_sort;
+	for (auto iter = nDatas.begin(); iter != nDatas.end(); iter++)
+	{
+		nDatas_sort[iter->PRN].push_back(*iter);
+	}
+	for (auto iter = nDatas_sort.begin(); iter != nDatas_sort.end(); iter++)
+	{
+		//计算起始结束时间
+		//起始和结束分别外推半个小时，防止只有一个卫星星历
+		double start_sec = iter->second.begin()->GPSWeek * WeekSecond + iter->second.begin()->TOE /*- 1800*/;
+		double end_sec = (iter->second.end() - 1)->GPSWeek * WeekSecond + (iter->second.end() - 1)->TOE /*+ 1800*/;
+		//采样间隔
+		int row = int(end_sec - start_sec) / (LMAX - 1);
+		vector<LargnageCoeff> singleL;
+		for (int i = 0; i < LMAX; i++)
+		{
+			GTime GObsTime = Sec2GTime(row * i + start_sec);
+			//星历中PRN卫星的所有历元的位置
+			SatPoint satpoint;
+			NFileRecord nData = GetNFileRecordByObsTime(GObsTime, nDatas, iter->first);
+			BroadcastSatPosition(GObsTime, nData, satpoint);
+
+			LargnageCoeff lcoeff = { GObsTime, satpoint.point };
+			singleL.push_back(lcoeff);
+		}
+		L[iter->first] = singleL;
+	}
+	return true;
+}
+bool Lagrange_SatPosition(const Time& obsTime, string PRN, const map<string, vector<LargnageCoeff>>& L, SatPoint& satpoint)
+{
+	satpoint.PRN = PRN;
+	GTime GobsTime = const_cast<Time&>(obsTime).UTC2GTime();
+	for (vector<LargnageCoeff>::size_type i = 0; i < L.at(PRN).size(); i++)
+	{
+		double coeff = 1.0;
+		for (vector<LargnageCoeff>::size_type j = 0; j < L.at(PRN).size(); j++)
+		{
+			if (j == i) continue;
+			coeff *= (GobsTime.seconds - L.at(PRN).at(j).gtime.seconds) / (L.at(PRN).at(i).gtime.seconds - L.at(PRN).at(j).gtime.seconds);
+		}
+		satpoint.point.x += coeff* L.at(PRN).at(i).point.x;
+		satpoint.point.y += coeff* L.at(PRN).at(i).point.y;
+		satpoint.point.z += coeff* L.at(PRN).at(i).point.z;
 	}
 	return true;
 }
