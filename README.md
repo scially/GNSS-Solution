@@ -1,4 +1,4 @@
-﻿# GPSPosition
+﻿# MGSS
   *Copyright(C),2016-2017,王会
   *FileName:  GPS伪据单点定位程序
   *Author:    王会
