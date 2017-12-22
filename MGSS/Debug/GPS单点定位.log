@@ -1,0 +1,12 @@
+﻿  Tools.cpp
+  ReadOFile.cpp
+e:\桌面\gpsposition\gps单点定位\readofile.cpp(215): warning C4267: “参数”: 从“size_t”转换到“const char”，可能丢失数据
+  ReadNFile.cpp
+  ReadFile.cpp
+  Position.cpp
+  MTime.cpp
+  Matrix.cpp
+  Main.cpp
+  EString.cpp
+  正在生成代码...
+  GPS单点定位.vcxproj -> E:\桌面\GPSPosition\Debug\GPS单点定位.exe

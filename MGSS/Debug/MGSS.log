@@ -1,0 +1,2 @@
+﻿d:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(387,5): warning MSB8028: 中间目录(Debug\)包含从另一个项目(GPS单点定位.vcxproj)共享的文件。   这会导致错误的清除和重新生成行为。
+  MGSS.vcxproj -> E:\桌面\MGSS\Debug\MultGNSS.exe
